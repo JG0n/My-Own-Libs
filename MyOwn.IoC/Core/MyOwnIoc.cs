@@ -32,10 +32,8 @@ class MyOwnIoc
 
         if (!registrations.ContainsKey(resolveTypeName))
         {
-            logger.Error($" Type not registered <{resolveTypeName}>");
-            logger.Log("Terminating...");
-            Environment.Exit(-1);
-            return null;
+            logger.Error($"Type not registered <{resolveTypeName}>");
+            throw new NullResolutionException();
         }
 
         string nameTypeToResolve = registrations[resolveTypeName].TypeName;
@@ -48,16 +46,14 @@ class MyOwnIoc
         if (registrations[resolveTypeName].IsSingleton &&
             registrations[resolveTypeName].Instance == null)
         {
-            logger.Warning($"Singleton created <{resolveTypeName},{nameTypeToResolve}>");
-
-            object obj = Activator.CreateInstance(registrations[resolveTypeName].Type);
-            registrations[resolveTypeName].Instance = obj;
+            logger.Warning($"New instance created of type <{nameTypeToResolve}>");
+            object objInstance = Activator.CreateInstance(registrations[resolveTypeName].Type);
+            registrations[resolveTypeName].Instance = objInstance;
         }
 
         if (registrations[resolveTypeName].IsSingleton)
         {
-            logger.Warning($"Resolved Singleton <{resolveTypeName},{nameTypeToResolve}>");
-
+            logger.Info($"Resolved Singleton <{resolveTypeName},{nameTypeToResolve}>");
             return registrations[resolveTypeName].Instance;
         }
 
@@ -66,15 +62,42 @@ class MyOwnIoc
             .OrderByDescending(c => c.GetParameters().Length);
 
         var args = new List<object>();
+        bool resolutionCompleted = false;
         foreach (var ctor in ctors)
         {
-            foreach (var param in ctor.GetParameters())
+            resolutionCompleted = false;
+            var ctorParams = ctor.GetParameters();
+            foreach (var param in ctorParams)
             {
-                args.Add(Resolve(param.ParameterType));
+                try
+                {
+                    args.Add(Resolve(param.ParameterType));
+                }
+                catch (NullResolutionException)
+                {
+                    args.Clear();
+                    logger.Warning($"Moving to next ctor.");
+                    break; // try another ctor
+                }
+            }
+
+            if (args.Count == ctorParams.Count())
+            {
+                resolutionCompleted = true;
+                break;
             }
         }
 
-        logger.Warning($"Resolved <{resolveTypeName},{nameTypeToResolve}>");
-        return Activator.CreateInstance(registrations[resolveTypeName].Type, args.ToArray());
+        if (!resolutionCompleted)
+        {
+            logger.Error($"Can't resolve {resolveTypeName}");
+            logger.Log("Terminating...");
+            Environment.Exit(-1);
+        }
+
+        object obj = Activator.CreateInstance(registrations[resolveTypeName].Type, args.ToArray());
+        logger.Warning($"New instance created of type <{nameTypeToResolve}>");
+        logger.Info($"Resolved <{resolveTypeName},{nameTypeToResolve}>");
+        return obj;
     }
 }

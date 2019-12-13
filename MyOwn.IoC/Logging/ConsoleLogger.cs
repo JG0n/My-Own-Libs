@@ -2,26 +2,20 @@ using System;
 
 class ConsoleLogger : ILogger
 {
-    public void Warning(string text)
-    {
-        System.ConsoleColor currentColor = System.Console.ForegroundColor;
+    public void Warning(string text) => Log(text, ConsoleColor.Yellow);
 
-        System.Console.ForegroundColor = System.ConsoleColor.Yellow;
-        System.Console.WriteLine($"LOG - {text}");
-        System.Console.ForegroundColor = currentColor;
+    public void Error(string text) => Log(text, ConsoleColor.Red);
+
+    public void Info(string text) => Log(text, ConsoleColor.Green);
+
+    public void Log(string text, ConsoleColor color)
+    {
+        ConsoleColor currentColor = Console.ForegroundColor;
+
+        Console.ForegroundColor = color;
+        Log(text);
+        Console.ForegroundColor = currentColor;
     }
 
-    public void Log(string text)
-    {
-        System.Console.WriteLine($"LOG - {text}");
-    }
-
-    internal void Error(string text)
-    {
-        System.ConsoleColor currentColor = System.Console.ForegroundColor;
-
-        System.Console.ForegroundColor = System.ConsoleColor.Red;
-        System.Console.WriteLine($"LOG - {text}");
-        System.Console.ForegroundColor = currentColor;
-    }
+    public void Log(string text) => Console.WriteLine($"LOG - {text}");
 }

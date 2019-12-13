@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MyOwn.IoC
+﻿namespace MyOwn.IoC
 {
     public static class Program
     {
